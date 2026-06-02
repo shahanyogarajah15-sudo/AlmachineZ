@@ -1,25 +1,21 @@
 import streamlit as st
 import google.generativeai as genai
 
-st.title("API Model Checker")
+# Configuratie
+api_key = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=api_key)
 
-# API Configuratie
-try:
-    # Zorg dat je GEMINI_API_KEY in je Streamlit Secrets staat!
-    api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
-    
-    # Haal alle beschikbare modellen op
-    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    
-    st.write("### Beschikbare modellen voor jouw sleutel:")
-    st.write(models)
-    
-    if models:
-        st.write("---")
-        st.write("Kopieer een van deze namen en gebruik die in je echte app:")
-        st.code(models[0])
-        
-except Exception as e:
-    st.error(f"Fout bij verbinden met API. Controleer je Secrets!")
-    st.write(f"Foutmelding: {e}")
+# We gebruiken nu de naam die we zojuist hebben gevonden!
+model = genai.GenerativeModel('models/gemini-2.5-flash')
+
+st.title("Mijn Meertalige AI")
+
+user_input = st.text_input("Stel je vraag:")
+
+if user_input:
+    with st.spinner('De AI denkt na...'):
+        try:
+            response = model.generate_content(user_input)
+            st.write(f"**De AI antwoordt:** {response.text}")
+        except Exception as e:
+            st.error(f"Er ging iets mis: {e}")
