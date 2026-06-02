@@ -19,17 +19,18 @@ def set_background(image_file):
         """
         st.markdown(style, unsafe_allow_html=True)
     except FileNotFoundError:
-        st.error(f"Afbeelding {image_file} niet gevonden. Controleer de bestandsnaam.")
+        st.error(f"Afbeelding {image_file} niet gevonden.")
 
 # --- Configuratie ---
-# Zorg dat je GEMINI_API_KEY in je Streamlit Secrets staat!
+# Zorg dat GEMINI_API_KEY in je Streamlit Secrets staat!
 api_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=api_key)
 
-# We gebruiken de modelnaam die we eerder hebben gevonden
+# We gebruiken het werkende model
 model = genai.GenerativeModel('models/gemini-2.5-flash')
 
-# --- Achtergrond instellen ---
+# --- Achtergrond ---
+# Zorg dat de bestandsnaam exact overeenkomt met de foto op GitHub
 set_background("Gemini_Generated_Image_g94fxbg94fxbg94f.png")
 
 # --- UI ---
@@ -41,6 +42,16 @@ if user_input:
     with st.spinner('De AI denkt na...'):
         try:
             response = model.generate_content(user_input)
-            st.write(f"**De AI antwoordt:** {response.text}")
+            
+            # Zwart kader voor betere leesbaarheid
+            st.markdown(
+                f"""
+                <div style="background-color: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px; color: white;">
+                    <h4 style="color: white;">De AI antwoordt:</h4>
+                    <p>{response.text.replace(chr(10), '<br>')}</p>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
         except Exception as e:
             st.error(f"Er ging iets mis: {e}")
