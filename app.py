@@ -1,30 +1,25 @@
 import streamlit as st
 import google.generativeai as genai
 
-# --- Configuratie ---
+st.title("API Model Checker")
+
+# API Configuratie
 try:
-    # Haal je sleutel op uit Secrets
+    # Zorg dat je GEMINI_API_KEY in je Streamlit Secrets staat!
     api_key = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=api_key)
-
-    # We proberen expliciet het model 'gemini-1.5-flash' te gebruiken
-    # Mocht dat echt niet lukken, dan proberen we de lijst op te vragen
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # Haal alle beschikbare modellen op
+    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    
+    st.write("### Beschikbare modellen voor jouw sleutel:")
+    st.write(models)
+    
+    if models:
+        st.write("---")
+        st.write("Kopieer een van deze namen en gebruik die in je echte app:")
+        st.code(models[0])
+        
 except Exception as e:
-    st.error(f"Configuratie-fout: {e}")
-    st.stop()
-
-# --- UI ---
-st.title("Mijn AI App")
-
-user_input = st.text_input("Stel je vraag:")
-
-if user_input:
-    with st.spinner('De AI denkt na...'):
-        try:
-            # Stuur de vraag naar het model
-            response = model.generate_content(user_input)
-            st.write(f"**De AI antwoordt:** {response.text}")
-        except Exception as e:
-            st.error(f"Er ging iets mis met het model: {e}")
-            st.write("Tip: Als je een 404 ziet, is het model 'gemini-1.5-flash' niet toegankelijk voor deze sleutel.")
+    st.error(f"Fout bij verbinden met API. Controleer je Secrets!")
+    st.write(f"Foutmelding: {e}")
