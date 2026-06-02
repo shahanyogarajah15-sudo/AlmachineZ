@@ -1,6 +1,11 @@
 import streamlit as st
-from openai import OpenAI
+import google.generativeai as genai
 import base64
+
+# --- Configuratie van Gemini ---
+# Zorg dat je GEMINI_API_KEY in je Streamlit Secrets staat
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+model = genai.GenerativeModel('gemini-pro')
 
 # --- Achtergrond instellen ---
 def set_background(image_file):
@@ -19,30 +24,21 @@ def set_background(image_file):
         """
         st.markdown(style, unsafe_allow_html=True)
     except FileNotFoundError:
-        st.warning(f"Afbeelding {image_file} niet gevonden.")
+        st.warning(f"Afbeelding '{image_file}' niet gevonden in GitHub.")
 
-# Zorg dat de bestandsnaam exact overeenkomt met wat je op GitHub hebt geüpload
+# --- UI & Logica ---
+st.title("Mijn Meertalige AI (Gemini)")
+
+# PAS DIT AAN: Zorg dat deze naam exact matcht met je bestand in GitHub
 set_background("watermarked_img_14049238449239717308.png") 
-
-# --- AI Logica ---
-# Deze regel zoekt naar 'OPENAI_API_KEY' in je Streamlit Secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def chat_meertalig(gebruikers_input):
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "Jij bent een behulpzame assistent."},
-                {"role": "user", "content": gebruikers_input}
-            ]
-        )
-        return response.choices[0].message.content
+        response = model.generate_content(gebruikers_input)
+        return response.text
     except Exception as e:
         return f"Er is een fout opgetreden: {e}"
 
-# --- Streamlit UI ---
-st.title("Mijn Meertalige AI")
 user_input = st.text_input("Stel je vraag:")
 
 if user_input:
