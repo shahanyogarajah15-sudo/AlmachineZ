@@ -2,37 +2,29 @@ import streamlit as st
 import google.generativeai as genai
 
 # --- Configuratie ---
-# Zorg dat GEMINI_API_KEY in je Streamlit Secrets staat
 try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # We proberen eerst te achterhalen welke modellen beschikbaar zijn
-    # Als je een 404 krijgt, printen we de juiste namen in de app
-    def get_available_model():
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        return models
+    # Haal je sleutel op uit Secrets
+    api_key = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=api_key)
 
-    available_models = get_available_model()
-    
-    # Gebruik het eerste model uit de lijst als standaard (meestal gemini-1.5-flash of vergelijkbaar)
-    model_name = available_models[0] if available_models else 'gemini-1.5-flash'
-    model = genai.GenerativeModel(model_name)
-    
+    # We proberen expliciet het model 'gemini-1.5-flash' te gebruiken
+    # Mocht dat echt niet lukken, dan proberen we de lijst op te vragen
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
-    st.error(f"Configuratie fout: {e}")
+    st.error(f"Configuratie-fout: {e}")
     st.stop()
 
-# --- UI & Logica ---
+# --- UI ---
 st.title("Mijn AI App")
-st.write(f"Gebruikt model: {model_name}")
 
-user_input = st.text_input("Vraag:")
+user_input = st.text_input("Stel je vraag:")
 
 if user_input:
     with st.spinner('De AI denkt na...'):
         try:
+            # Stuur de vraag naar het model
             response = model.generate_content(user_input)
             st.write(f"**De AI antwoordt:** {response.text}")
         except Exception as e:
-            st.error(f"Fout tijdens genereren: {e}")
-            st.write("Beschikbare modellen die ik zie zijn:", available_models)
+            st.error(f"Er ging iets mis met het model: {e}")
+            st.write("Tip: Als je een 404 ziet, is het model 'gemini-1.5-flash' niet toegankelijk voor deze sleutel.")
