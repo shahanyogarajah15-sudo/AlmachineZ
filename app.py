@@ -1,68 +1,49 @@
 import streamlit as st
 import google.generativeai as genai
-import googlemaps
-from datetime import datetime
-import base64
 from gtts import gTTS
 import io
 from langdetect import detect
+from youtube_transcript_api import YouTubeTranscriptApi
 
 # --- Configuratie ---
-# Zorg dat deze keys in je Streamlit Secrets staan
+# Je hebt nu alleen nog de Gemini API sleutel nodig
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-gmaps = googlemaps.Client(key=st.secrets["GOOGLE_MAPS_API_KEY"])
-model = genai.GenerativeModel('models/gemini-2.0-flash') # Gebruik een actueel model
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# --- Functies ---
-def get_live_traffic(origin, destination):
-    try:
-        now = datetime.now()
-        directions = gmaps.directions(origin, destination, mode="driving", departure_time=now)
-        if directions:
-            route = directions[0]['legs'][0]
-            return f"Reistijd met verkeer: {route['duration_in_traffic']['text']}. (Zonder verkeer: {route['duration']['text']}). Afstand: {route['distance']['text']}."
-        return "Kon geen route vinden."
-    except Exception as e:
-        return f"Verkeersinfo kon niet worden opgehaald: {str(e)}"
+st.title("🤖 AI Assistent: Vragen & Video's")
 
-# --- App Interface ---
-st.set_page_config(page_title="Meertalige AI Routeplanner", layout="centered")
-st.title("🌍 Meertalige AI Routeplanner")
+# --- Tabs ---
+tab1, tab2 = st.tabs(["💬 Chat & Advies", "▶️ YouTube Samenvatting"])
 
-user_input = st.text_input("Vraag een route (bijv: 'Hoe kom ik van Amsterdam naar Utrecht?'):")
+with tab1:
+    user_input = st.text_input("Stel je vraag:")
+    if user_input:
+        with st.spinner("AI denkt na..."):
+            # AI genereert antwoord
+            response = model.generate_content(user_input)
+            antwoord = response.text
+            st.markdown(f"**Antwoord:** {antwoord}")
+            
+            # Audio voorlezen
+            audio = gTTS(text=antwoord, lang=detect(antwoord))
+            buf = io.BytesIO()
+            audio.write_to_fp(buf)
+            st.audio(buf.getvalue(), format="audio/mp3")
 
-if user_input:
-    with st.spinner("AI en verkeersgegevens analyseren..."):
+with tab2:
+    yt_url = st.text_input("Plak een YouTube URL:")
+    if yt_url:
         try:
-            # 1. Haal de steden uit de input via de AI
-            extraction_prompt = f"Extraheer de 'van' stad en de 'naar' stad uit deze zin: '{user_input}'. Geef alleen de steden terug in dit formaat: 'StadA|StadB'"
-            locations = model.generate_content(extraction_prompt).text.strip().split('|')
+            video_id = yt_url.split("v=")[1].split("&")[0]
+            st.video(yt_url)
             
-            if len(locations) == 2:
-                origin, dest = locations[0], locations[1]
-                verkeer_info = get_live_traffic(origin, dest)
-            else:
-                verkeer_info = "Kon locaties niet duidelijk herkennen."
-
-            # 2. Vraag AI om een vriendelijk antwoord
-            final_prompt = f"De gebruiker vraagt: '{user_input}'. De live verkeersinfo is: {verkeer_info}. Antwoord in de taal van de vraag en geef een natuurlijk reisadvies."
-            response = model.generate_content(final_prompt)
-            tekst = response.text
+            # Transcript ophalen
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['nl', 'en'])
+            text = " ".join([i['text'] for i in transcript])
             
-            # 3. Toon het antwoord
-            st.markdown(f'<div style="background-color: rgba(0,0,0,0.7); padding:20px; border-radius:10px; color:white;">{tekst}</div>', unsafe_allow_html=True)
-            
-            # 4. Audio genereren
-            try:
-                lang_code = detect(tekst)
-            except:
-                lang_code = 'nl'
-            
-            tts = gTTS(text=tekst, lang=lang_code)
-            audio_buffer = io.BytesIO()
-            tts.write_to_fp(audio_buffer)
-            audio_buffer.seek(0)
-            st.audio(audio_buffer, format="audio/mp3")
-            
+            # AI Samenvatting
+            summary = model.generate_content(f"Vat deze video samen: {text[:5000]}").text
+            st.markdown("### Samenvatting:")
+            st.write(summary)
         except Exception as e:
-            st.error(f"Er ging iets mis: {e}")
+            st.error("Kon de video niet samenvatten. Controleer of de video ondertiteling heeft.")
