@@ -40,6 +40,7 @@ def set_background(image_file):
     except FileNotFoundError:
         st.warning("Achtergrondafbeelding niet gevonden.")
 
+
 # ==========================================
 # PAGINA
 # ==========================================
@@ -49,12 +50,18 @@ st.set_page_config(
     layout="centered"
 )
 
+# ==========================================
+# ACHTERGROND LADEN
+# ==========================================
 set_background("Gemini_Generated_Image_g94fxbg94fxbg94f.png")
 
+# ==========================================
+# TITEL
+# ==========================================
 st.title("🌍 Mijn Meertalige AI")
 
 # ==========================================
-# TALEN
+# TAALKEUZE
 # ==========================================
 taal_keuze = st.selectbox(
     "Kies de taal:",
@@ -115,6 +122,7 @@ BELANGRIJK:
 - Antwoord uitsluitend in {taal_keuze}.
 - Gebruik geen andere taal.
 - Geef een natuurlijk antwoord.
+- Vertaal indien nodig naar de gekozen taal.
 
 Vraag:
 {user_input}
@@ -163,7 +171,7 @@ Vraag:
             )
 
             # ==========================================
-            # AUDIO
+            # AUDIO GENEREREN
             # ==========================================
             tts = gTTS(
                 text=tekst,
@@ -171,18 +179,14 @@ Vraag:
             )
 
             audio_buffer = io.BytesIO()
-
             tts.write_to_fp(audio_buffer)
-
             audio_buffer.seek(0)
 
-            st.audio(
-                audio_buffer,
-                format="audio/mp3"
-            )
+            # Audioplayer tonen
+            st.audio(audio_buffer, format="audio/mp3")
 
             # ==========================================
-            # AUTOPLAY
+            # AUTOPLAY AUDIO
             # ==========================================
             audio_buffer.seek(0)
 
@@ -206,7 +210,7 @@ Vraag:
             if "429" in error_text:
 
                 st.error(
-                    "⚠️ Gemini quota bereikt. De gratis limiet is opgebruikt."
+                    "⚠️ Gemini quota bereikt. De gratis limiet is opgebruikt. Probeer later opnieuw."
                 )
 
             else:
@@ -214,5 +218,3 @@ Vraag:
                 st.error(
                     f"❌ Foutmelding: {error_text}"
                 )
-            else:
-                st.error(f"❌ Fout: {error_text}")
