@@ -5,7 +5,7 @@ from gtts import gTTS
 import io
 
 # ==========================================
-# ACHTERGROND INSTELLEN
+# ACHTERGROND
 # ==========================================
 def set_background(image_file):
     try:
@@ -14,56 +14,43 @@ def set_background(image_file):
 
         b64_encoded = base64.b64encode(img_data).decode()
 
-        page_bg = f"""
-        <style>
-        .stApp {{
-            background-image: url("data:image/png;base64,{b64_encoded}");
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }}
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/png;base64,{b64_encoded}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+            }}
 
-        h1, h2, h3, h4, h5, h6, label {{
-            color: white !important;
-        }}
+            h1, h2, h3, h4, h5, h6, label {{
+                color: white !important;
+            }}
 
-        .stTextInput > div > div > input {{
-            background-color: rgba(0,0,0,0.7);
-            color: white;
-        }}
-
-        .stSelectbox > div > div {{
-            background-color: rgba(0,0,0,0.7);
-            color: white;
-        }}
-        </style>
-        """
-
-        st.markdown(page_bg, unsafe_allow_html=True)
+            .stTextInput input {{
+                color: white !important;
+                background-color: rgba(0,0,0,0.6) !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     except FileNotFoundError:
         st.warning("Achtergrondafbeelding niet gevonden.")
 
-
 # ==========================================
-# GEMINI CONFIGURATIE
+# PAGINA
 # ==========================================
-api_key = st.secrets["GEMINI_API_KEY"]
-
-genai.configure(api_key=api_key)
-
-model = genai.GenerativeModel(
-    "models/gemini-2.5-flash"
+st.set_page_config(
+    page_title="Mijn Meertalige AI",
+    page_icon="🌍",
+    layout="centered"
 )
 
-# ==========================================
-# ACHTERGROND LADEN
-# ==========================================
 set_background("Gemini_Generated_Image_g94fxbg94fxbg94f.png")
 
-# ==========================================
-# TITEL
-# ==========================================
 st.title("🌍 Mijn Meertalige AI")
 
 # ==========================================
@@ -89,12 +76,29 @@ talen_code = {
 }
 
 # ==========================================
+# GEMINI INITIALISEREN
+# ==========================================
+gemini_beschikbaar = True
+
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+
+    genai.configure(api_key=api_key)
+
+    model = genai.GenerativeModel(
+        "models/gemini-2.5-flash"
+    )
+
+except Exception:
+    gemini_beschikbaar = False
+
+# ==========================================
 # INPUT
 # ==========================================
 user_input = st.text_input("Stel je vraag:")
 
 # ==========================================
-# AI ANTWOORD
+# AI
 # ==========================================
 if user_input:
 
@@ -102,32 +106,52 @@ if user_input:
 
         try:
 
-            prompt = f"""
-Je bent een professionele meertalige assistent.
+            if gemini_beschikbaar:
 
-BELANGRIJKE REGELS:
+                prompt = f"""
+Je bent een professionele AI-assistent.
+
+BELANGRIJK:
 - Antwoord uitsluitend in {taal_keuze}.
 - Gebruik geen andere taal.
 - Geef een natuurlijk antwoord.
-- Wees duidelijk en behulpzaam.
 
 Vraag:
 {user_input}
 """
 
-            response = model.generate_content(prompt)
+                response = model.generate_content(prompt)
 
-            tekst = response.text.strip()
+                tekst = response.text.strip()
+
+            else:
+
+                tekst = {
+                    "Nederlands":
+                        "Dit is een testantwoord omdat Gemini momenteel niet beschikbaar is.",
+
+                    "English":
+                        "This is a test response because Gemini is currently unavailable.",
+
+                    "Français":
+                        "Ceci est une réponse de test car Gemini est actuellement indisponible.",
+
+                    "Deutsch":
+                        "Dies ist eine Testantwort, da Gemini derzeit nicht verfügbar ist.",
+
+                    "Español":
+                        "Esta es una respuesta de prueba porque Gemini no está disponible actualmente."
+                }[taal_keuze]
 
             # ==========================================
-            # ANTWOORD WEERGEVEN
+            # ANTWOORD TONEN
             # ==========================================
             st.markdown(
                 f"""
                 <div style="
                     background-color: rgba(0,0,0,0.75);
                     padding:20px;
-                    border-radius:12px;
+                    border-radius:15px;
                     color:white;
                     margin-top:15px;
                 ">
@@ -139,7 +163,7 @@ Vraag:
             )
 
             # ==========================================
-            # AUDIO GENEREREN
+            # AUDIO
             # ==========================================
             tts = gTTS(
                 text=tekst,
@@ -152,8 +176,10 @@ Vraag:
 
             audio_buffer.seek(0)
 
-            # Normale speler
-            st.audio(audio_buffer, format="audio/mp3")
+            st.audio(
+                audio_buffer,
+                format="audio/mp3"
+            )
 
             # ==========================================
             # AUTOPLAY
@@ -164,22 +190,29 @@ Vraag:
                 audio_buffer.read()
             ).decode()
 
-            audio_html = f"""
-            <audio autoplay>
-                <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
-            </audio>
-            """
-
-            st.markdown(audio_html, unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <audio autoplay>
+                    <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                </audio>
+                """,
+                unsafe_allow_html=True
+            )
 
         except Exception as e:
 
             error_text = str(e)
 
             if "429" in error_text:
+
                 st.error(
-                    "⚠️ Gemini API quota bereikt. "
-                    "Wacht even of upgrade je Google AI-plan."
+                    "⚠️ Gemini quota bereikt. De gratis limiet is opgebruikt."
+                )
+
+            else:
+
+                st.error(
+                    f"❌ Foutmelding: {error_text}"
                 )
             else:
                 st.error(f"❌ Fout: {error_text}")
