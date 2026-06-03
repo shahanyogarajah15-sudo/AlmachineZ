@@ -2,4 +2,4 @@ streamlit
 google-generativeai
 gTTS
 langdetect
-googlemaps
+youtube-transcript-api
